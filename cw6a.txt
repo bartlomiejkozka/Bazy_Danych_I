@@ -1,0 +1,58 @@
+1.
+
+# znając id_produktu znamy pratycznie wszytkie dane na temat gego produktu (ilość, VAT, cena_produktu itd.)
+# Jedyne czego nie możemy się dowiedzieć znając id_produktu to id_klineta czy nazwa_klienta
+# gdyż nie jest to stała informcja o produkcie, a ten sam prodkut może zamówić kilka różnych kliwntów,
+# czyli nie jest to unikatowa informajca dla prodkutu tak jak np. VAT dla danego prodkutu jest unikatowy
+# (tylko jeden)
+
+-> id_klienta -> nazwa_klienta
+
+-> id_produktu -> nazwa_produktu, cena_produktu, VAT, ilość, data_zamowienia, suma_brutto, suma_netto 
+	
+	-> suma_netto, VAT -> suma_brutto	# znając suma_netto i VAT, możemy obliczyć suma_brutto
+	-> suma_brutto, VAT -> suma_netto	# znjąc suma_brutto i VAT, możemy obliczyć suma_netto
+	-> suma_brutto, suma_netto -> VAT	# znjąc suma_brutto i suma_netto, możemy obliczyć VAT
+		
+
+# Dlatego dobrym pomysłem były by stworzyć kilka osobnych tabel aby w jdnej tabeli nie przechowywać wzsytkich zmiennych:
+
+-> tabela0 ( id_produktu, id_klienta, data_zamowienia, ilosc )
+-> tabela1 ( id_produktu, nazwa_prodkutu, VAT, cena_netto )
+-> tabela2 ( id_klienta, nazwa_klienta )
+
+
+2. 
+
+Klucze kandydujące:
+	
+	-> id_klienta, id_produktu, data_zamowienia
+	-> data_zamowienia, nazwa_produktu, id_klienta
+
+3. 
+
+-> id_pomieszczenia -> numer_pomieszczenia, id_budynku, powierzchnia, liczba_okien, liczba_drzwi,
+					   ulica, miasto, kod_pocztowy
+	
+	-> kod_pocztowy -> miasto
+	-> ulica, miasto -> kod_pocztowy
+
+
+-> id_budynku -> ulica, miasto, kod_pocztowy
+
+# tak jak w zadaniu 1 możemy stworzyc 2 mniejsze tabele aby nie przechowywac wzsystkich danych w jednej
+# tabeli:
+
+-> tabela0 ( id_pomieszczenia, id_budynku )
+-> tabela1 ( id_pomieszczenia, numer_pomieszczenia, powierzchnia, liczba okien, liczba drzwi )
+-> tabela2 ( id_budynku, ulica, miasto, kod_pocztowy )
+
+Klucze kandydujące:
+
+	-> id_pomieszczenia
+	-> id_budynku, numer_pomieszczenia
+	
+	
+
+
+ 
