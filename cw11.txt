@@ -1,0 +1,100 @@
+ZAD.1
+(Wszytkie operacje będą wykonywane na bazie danych AdventureWorks oraz na tabeli Sales.SalesOrderDetailID)
+
+Wyjaśnijmy sobie na początku parę pojęć, ktróch będę później uywał dla jasności:
+-> Cost - nformuje o koszcie wykonania operacji
+-> Rows - wskazuje na ilość przetworzonych wierszy
+-> Rows Removed by Filter - informuje o liczbie wierszy, które zostały odfiltrowane 
+   i nie zostały uwzględnione w wynikach zapytania 
+-> Planning Time - Jest to czas poświęcony na analizę i planowanie, które jest wykonywane 
+   przez optymalizator zapytań bazy danych
+-> Execution Time - Jest to czas rzeczywistego wykonania zapytania na danych
+
+Przed wykoanniem testu warto dodać, iz klucz PRIMARY KEY odrazu jest traktowany jak indeks 
+dla tej kolumny w tabeli (Przynajmniej w PostgreSql). Oznacza to, ze nie musimu specjlanie
+tworzyc indeksów w osobnych zapytaniach. Warto równiez zanzaczyć, iz Planning tiem oraz 
+Execution time są wartościami uśrednionymi, gdyz z coraz to wieksza powatrzalnością czas
+tych operacji ulegał skróceniu, lecz kilkunastu próbach w miarę się wyrównywał, dlatego
+do danych uwzględniałem średni czas wykonywanych zapytań po conajmniej 10-krotnym ich powtórzeniu.
+
+Wzór wykorzystanego zapytanai w teście:
+    SELECT SalesOrderID, SalesOrderDetailID
+    FROM Sales.SalesOrderDetail
+    WHERE SalesOrderID = 43683
+    AND SalesOrderDetailID = 240
+
+
+Porówanie wydajności operacji na tabelach, gdy i stntnieją w nich indeksy oraz przy ich braku:
+
+    -> 1. Gdy istnieje klucz główny (indeks):
+        
+        -> Zapytanie z AND:    
+            - Cost:             0.42 - 4.44
+            - Rows:             1
+            - Planning Time:    ~0.113 ms
+            - Execution Time:   ~0.050 ms
+
+        -> Zapytanie z OR:
+            - Cost:             3690.76 - 3717.83
+            - Rows:             7
+            - Planning Time:    ~0.138 ms
+            - Execution Time:   ~3.798 ms   
+
+    -> 2.Po usunięciu klucza głównego (indeksu). Tabela wtedy staje się stertą:
+
+        -> Zapytanie z AND:
+            - Cost:                   0.00 - 4696.76
+            - Rows Removed by Filter: 121316           
+            - Planning Time:          ~0.097 ms
+            - Execution Time:         ~14.499 ms 
+
+        -> Zapytanie z OR:
+            - Cost:                   0.00 - 4696.76    
+            - Rows Removed by Filter: 121304    
+            - Planning Time:          ~0.049 ms
+            - Execution Time:         ~16.617 ms
+
+Wnioski:
+    
+    A) Róznice pomiędzy wykonaywanymi zapytaniami w przypaku bez klucza głównego w tabeli, inaczej mowiac bez indesku danej kolumny,
+       a w przypadku z nim, są duze na niekorzyść tabli bez Primary key. Mozemy zobaczyc, iz Planning time (czas planowania)
+       nie rozni się znacząo, pomiędzy ropatrywaniymi przypadkami, z kolei czas Execution Time (czas wykonywania) rózni się diametralanie.
+       W przypadku zapytania wykonywanego na tabeli, ktora nie ma klucza głównego, czas wykonania jest gorszy kilkakrotnie od czasu
+       wykonania dla tabeli z indeksem. Tak samo mozemy zoabczyć, iz koszty operacji (Cost), jak i przeszukiwane wiesze,
+       osiągają duzo wieksze wartości dla tabeli bez primary key.
+       Jest to oczywiście ze względu na to, iz obecnosc indeksu (w tym primary key) na danej kolumnie w tabli bardzo przyspiesza jej
+       proces przeszukiwania podczas zapytani slect. Mozemy to porównać do dobrze nam znanej ksiąki telefonicznej, w której to
+       numery telefonów są zapisywane w koljności alfabetycznej. Gdy chcemy odszukać numer danej osoby, szukamy w miejscy, gdzie
+       nazwiska właścicieli zaczynają sie na dana literę, lecz gdyby nie alfabetyczny sort tych numerów, musielbyśmy preszukiwać całą
+       księge od poczatku do końca. To samo tyczy się indeksów w tablach. Ustalają one konkretny porządek danych w kolumnie przez co komputer podczas wykonywanego zapytania nie musi przchodzic przez wszytki wiersze w tabli az natrafi na ten oczekiwany.
+
+    B) Zmiana słówka AND na OR jeśli chodzi o wykonanie zapytania dla tabeli z kluczem głównym, wprowadza zamiany w koszcie operacji
+       oraz w Execution Time na niekorzyść zapytania z warunkiem logicznym OR. Jest to całkowicie logiczny wynik, gdyz w tym przypadku 
+       zapytanie zwroci wiecej pasujących wierszy do wzorca, dlatego sam czas przeszukania tabeli będzie dluzszy. To samo tyczy się
+       róznicy pomiedzy AND a OR w przypadku tabeli bez primary key, lecz tutaj wydłuza sie tylko czas wykonania dla zapytania z OR.
+
+
+
+
+ZAD.2
+Wybrałem do tego tabele sales.salesperson równiez bazy AdventureWorks:
+
+Wykonywane zapytanie w teście:
+    select * from sales.customer where storeid = 766;
+
+-> przeszukiwanie tabeli bez indeksu (Seq Scan):
+    - Cost:             0.00 -  413.75
+    - Rows:             19818 
+    - Planning time:    0.133 ms
+    - Execution time:   2.273 ms
+
+-> przeszukiwanie tabeli z indeksem:
+    - Cost:             4.30 -  11.67
+    - Rows:             2 
+    - Planning time:    0.067 ms
+    - Execution time:   0.052 ms
+
+Wnisoki:
+    Tak jak w poprzednim zadaniu mozemy zaobserwować duze przyspieszenie dzialania porgramu (pszeszukiwania tabeli) podczas
+    gdy w tej tabeli istniał juz indeks na kolumnie wzgledej ktorej szukalismy danego rekorodu. Co za tym idzie zadanie to
+    potwierdza nasze wnioski z zadania 1.
